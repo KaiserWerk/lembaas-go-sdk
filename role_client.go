@@ -93,8 +93,8 @@ func (c *RoleClient) DeleteRole(ctx context.Context, roleID int64) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusNoContent), resp.Status)
 	}
 
 	return nil

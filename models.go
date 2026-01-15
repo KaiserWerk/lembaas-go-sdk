@@ -71,8 +71,9 @@ type AppRoleCollection struct {
 	Roles []*AppRole `json:"roles"`
 }
 
-// AppCustomConfig represents a custom configuration key-value pair for a tenant app
-type AppCustomConfig struct {
+// AppConfigValue represents a custom configuration key-value pair for a tenant app
+type AppConfigValue struct {
+	Error
 	ID          int64  `json:"id"`
 	AppID       int64  `json:"app_id"`
 	ConfigKey   string `json:"config_key"`
@@ -80,8 +81,8 @@ type AppCustomConfig struct {
 	Enabled     bool   `json:"enabled"`
 }
 
-type AppCustomConfigCollection struct {
+type AppConfigValueCollection struct {
 	Error
-	Count        int                `json:"count"`
-	ConfigValues []*AppCustomConfig `json:"config_values"`
+	Count        int               `json:"count"`
+	ConfigValues []*AppConfigValue `json:"config_values"`
 }
