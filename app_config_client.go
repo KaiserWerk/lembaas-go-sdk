@@ -16,7 +16,7 @@ type AppConfigClient struct {
 	httpClient *http.Client
 }
 
-func NewAppConfigClient(baseURL string, apiVersion int, token string) *AppConfigClient {
+func NewConfigClient(baseURL string, apiVersion int, token string) *AppConfigClient {
 	return &AppConfigClient{
 		baseURL:   fmt.Sprintf("%s/api/v%d", baseURL, apiVersion),
 		authToken: token,
@@ -55,64 +55,68 @@ func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (AppConfig
 	return configValues, nil
 }
 
-func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey string) (AppConfigValue, error) {
+func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey string) (AppConfigValueResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/config/%s/get", c.baseURL, configKey), nil)
 	if err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return AppConfigValue{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return AppConfigValueResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var configValue AppConfigValue
+	var configValue AppConfigValueResponse
 	if err = json.NewDecoder(resp.Body).Decode(&configValue); err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 
 	if configValue.Message != nil {
-		return AppConfigValue{}, fmt.Errorf("error getting config value: %s", *configValue.Message)
+		return AppConfigValueResponse{}, fmt.Errorf("error getting config value: %s", *configValue.Message)
 	}
 
 	return configValue, nil
 }
 
-func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, config AppConfigValue) (AppConfigValue, error) {
+func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, key, value string) (AppConfigValueResponse, error) {
+	config := AppConfigValue{
+		ConfigKey:   key,
+		ConfigValue: value,
+	}
 	reqBody, err := json.Marshal(config)
 	if err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/config/set", bytes.NewBuffer(reqBody))
 	if err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return AppConfigValue{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+	if resp.StatusCode != http.StatusCreated {
+		return AppConfigValueResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var updatedConfig AppConfigValue
+	var updatedConfig AppConfigValueResponse
 	if err = json.NewDecoder(resp.Body).Decode(&updatedConfig); err != nil {
-		return AppConfigValue{}, err
+		return AppConfigValueResponse{}, err
 	}
 
 	if updatedConfig.Message != nil {
-		return AppConfigValue{}, fmt.Errorf("error setting config value: %s", *updatedConfig.Message)
+		return AppConfigValueResponse{}, fmt.Errorf("error setting config value: %s", *updatedConfig.Message)
 	}
 
 	return updatedConfig, nil

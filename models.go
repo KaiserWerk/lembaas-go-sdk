@@ -71,17 +71,27 @@ type AppRole struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
+type AppRoleRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Permissions string `json:"permissions"`
+	IsDefault   bool   `json:"is_default"`
+}
+
 type AppRoleCollection struct {
 	Error
 	Count int        `json:"count"`
 	Roles []*AppRole `json:"roles"`
 }
 
-// AppConfigValue represents a custom configuration key-value pair for a tenant app
 type AppConfigValue struct {
+	ConfigKey   string `json:"config_key"`
+	ConfigValue string `json:"config_value"`
+	Enabled     bool   `json:"enabled"`
+}
+
+type AppConfigValueResponse struct {
 	Error
-	ID          int64  `json:"id"`
-	AppID       int64  `json:"app_id"`
 	ConfigKey   string `json:"config_key"`
 	ConfigValue string `json:"config_value"`
 	Enabled     bool   `json:"enabled"`
