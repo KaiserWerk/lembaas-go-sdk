@@ -3,8 +3,12 @@ package lembaas
 import "time"
 
 type Error struct {
-	Code    *int    `json:"code,omitzero"`
 	Message *string `json:"message,omitzero"`
+}
+
+type AppTokenRequest struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client"`
 }
 
 type AppTokenResponse struct {
@@ -15,7 +19,9 @@ type AppTokenResponse struct {
 	TokenType string `json:"token_type"`
 }
 
-type AppInfo struct {
+type AppInfoRequest struct{}
+
+type AppInfoResponse struct {
 	Error
 	ID          int64     `json:"id"`
 	Name        string    `json:"name"`

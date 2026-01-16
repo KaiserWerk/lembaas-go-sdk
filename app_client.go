@@ -53,29 +53,37 @@ func (c *AppClient) GetAuthToken(ctx context.Context, clientID, clientSecret str
 		return AppTokenResponse{}, err
 	}
 
+	if tokenResp.Message != nil {
+		return AppTokenResponse{}, fmt.Errorf("error getting auth token: %s", *tokenResp.Message)
+	}
+
 	return tokenResp, nil
 }
 
-func (c *AppClient) GetAppInfo(ctx context.Context, token string) (AppInfo, error) {
+func (c *AppClient) GetAppInfo(ctx context.Context, token string) (AppInfoResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/app", nil)
 	if err != nil {
-		return AppInfo{}, err
+		return AppInfoResponse{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppInfo{}, err
+		return AppInfoResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppInfo{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return AppInfoResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var appInfo AppInfo
+	var appInfo AppInfoResponse
 	if err = json.NewDecoder(resp.Body).Decode(&appInfo); err != nil {
-		return AppInfo{}, err
+		return AppInfoResponse{}, err
+	}
+
+	if appInfo.Message != nil {
+		return AppInfoResponse{}, fmt.Errorf("error getting app info: %s", *appInfo.Message)
 	}
 
 	return appInfo, nil

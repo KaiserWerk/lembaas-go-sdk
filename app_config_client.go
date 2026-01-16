@@ -48,6 +48,10 @@ func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (AppConfig
 		return AppConfigValueCollection{}, err
 	}
 
+	if configValues.Message != nil {
+		return AppConfigValueCollection{}, fmt.Errorf("error listing config values: %s", *configValues.Message)
+	}
+
 	return configValues, nil
 }
 
@@ -71,6 +75,10 @@ func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey st
 	var configValue AppConfigValue
 	if err = json.NewDecoder(resp.Body).Decode(&configValue); err != nil {
 		return AppConfigValue{}, err
+	}
+
+	if configValue.Message != nil {
+		return AppConfigValue{}, fmt.Errorf("error getting config value: %s", *configValue.Message)
 	}
 
 	return configValue, nil
@@ -101,6 +109,10 @@ func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, config AppCo
 	var updatedConfig AppConfigValue
 	if err = json.NewDecoder(resp.Body).Decode(&updatedConfig); err != nil {
 		return AppConfigValue{}, err
+	}
+
+	if updatedConfig.Message != nil {
+		return AppConfigValue{}, fmt.Errorf("error setting config value: %s", *updatedConfig.Message)
 	}
 
 	return updatedConfig, nil
