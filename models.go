@@ -102,3 +102,27 @@ type AppConfigValueCollection struct {
 	Count        int               `json:"count"`
 	ConfigValues []*AppConfigValue `json:"config_values"`
 }
+
+type AppUserAuthRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type AppUserAuthResponse struct {
+	Error
+	SessionToken string    `json:"session_token"`
+	UserID       int64     `json:"user_id"`
+	Email        string    `json:"email"`
+	RoleID       int64     `json:"role_id"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	ExpiresIn    int       `json:"expires_in"`
+
+	/* For 2FA */
+	LoginCode           string    `json:"login_code"`
+	LoginCodeValidUntil time.Time `json:"login_code_valid_until"`
+}
+
+type TOTPRequest struct {
+	LoginCode string `json:"login_code"`
+	TOTPCode  string `json:"totp_code"`
+}
