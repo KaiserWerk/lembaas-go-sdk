@@ -208,7 +208,7 @@ func (c *UserClient) EnableTOTPForUser(ctx context.Context, userID int64) (*TOTP
 }
 
 func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64, code string) (*TOTPEnableResponse, error) {
-	r := TOTPEnableConfirmRequest{Code: code}
+	r := TOTPEnableConfirmRequest{TOTPCode: code}
 	reqBody, err := json.Marshal(r)
 	if err != nil {
 		return nil, err
@@ -218,7 +218,6 @@ func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64,
 	if err != nil {
 		return nil, err
 	}
-
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)

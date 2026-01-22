@@ -53,8 +53,8 @@ func (c *AppClient) GetAuthToken(ctx context.Context, clientID, clientSecret str
 		return AppTokenResponse{}, err
 	}
 
-	if tokenResp.Message != nil {
-		return AppTokenResponse{}, fmt.Errorf("error getting auth token: %s", *tokenResp.Message)
+	if tokenResp.Message != "" {
+		return AppTokenResponse{}, fmt.Errorf("error getting auth token: %s", tokenResp.Message)
 	}
 
 	return tokenResp, nil
@@ -82,8 +82,8 @@ func (c *AppClient) GetAppInfo(ctx context.Context, token string) (AppInfoRespon
 		return AppInfoResponse{}, err
 	}
 
-	if appInfo.Message != nil {
-		return AppInfoResponse{}, fmt.Errorf("error getting app info: %s", *appInfo.Message)
+	if appInfo.Message != "" {
+		return AppInfoResponse{}, fmt.Errorf("error getting app info: %s", appInfo.Message)
 	}
 
 	return appInfo, nil
