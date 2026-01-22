@@ -181,6 +181,64 @@ func (c *UserClient) DeleteUser(ctx context.Context, userID int64) error {
 	return nil
 }
 
+func (c *UserClient) EnableTOTPForUser(ctx context.Context, userID int64) (*TOTPEnableResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/users/%d/totp/enable", c.baseURL, userID), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.authToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+	}
+
+	var totpResp TOTPEnableResponse
+	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
+		return nil, err
+	}
+
+	return &totpResp, nil
+}
+
+func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64, code string) (*TOTPEnableResponse, error) {
+	r := TOTPEnableConfirmRequest{Code: code}
+	reqBody, err := json.Marshal(r)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("%s/users/%d/totp/enable/confirm", c.baseURL, userID), bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.authToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+	}
+
+	var totpResp TOTPEnableResponse
+	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
+		return nil, err
+	}
+
+	return &totpResp, nil
+}
+
 func (c *UserClient) LoginUser(ctx context.Context, auth AppUserAuthRequest) (*AppUserAuthResponse, error) {
 	reqBody, err := json.Marshal(auth)
 	if err != nil {
@@ -211,13 +269,13 @@ func (c *UserClient) LoginUser(ctx context.Context, auth AppUserAuthRequest) (*A
 	return &authResp, nil
 }
 
-func (c *UserClient) LoginUserWithTOTP(ctx context.Context, auth TOTPRequest) (*AppUserAuthResponse, error) {
+func (c *UserClient) LoginUserWithTOTP(ctx context.Context, auth TOTPLoginRequest) (*AppUserAuthResponse, error) {
 	reqBody, err := json.Marshal(auth)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/users/totp", bytes.NewBuffer(reqBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/users/login/totp", bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, err
 	}

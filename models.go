@@ -122,7 +122,16 @@ type AppUserAuthResponse struct {
 	LoginCodeValidUntil time.Time `json:"login_code_valid_until"`
 }
 
-type TOTPRequest struct {
+type TOTPLoginRequest struct {
 	LoginCode string `json:"login_code"`
 	TOTPCode  string `json:"totp_code"`
+}
+
+type TOTPEnableResponse struct {
+	Error
+	QRCode []byte `json:"qr_code"`
+}
+
+type TOTPEnableConfirmRequest struct {
+	Code string `json:"code"`
 }
