@@ -159,7 +159,7 @@ func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUser
 	return &user, nil
 }
 
-func (c *UserClient) RegisterUser(ctx context.Context, request CreateAppUserRequest) (*CreateAppUserResponse, error) {
+func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserRequest) (*CreateAppUserResponse, error) {
 	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err

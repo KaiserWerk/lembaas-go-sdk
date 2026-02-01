@@ -64,7 +64,7 @@ func (c *RoleClient) ListRoles(ctx context.Context) (AllAppRolesResponse, error)
 	return roles, nil
 }
 
-func (c *RoleClient) CreateRole(ctx context.Context, role CreateAppRoleRequest) (AppRole, error) {
+func (c *RoleClient) CreateRole(ctx context.Context, role *CreateAppRoleRequest) (AppRole, error) {
 	reqBody, err := json.Marshal(role)
 	if err != nil {
 		return AppRole{}, err
