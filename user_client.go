@@ -10,10 +10,68 @@ import (
 	"time"
 )
 
-type UserClient struct {
-	baseURL   string
-	authToken string
+// Requests
+type (
+	CreateAppUserRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		RoleID   int64  `json:"role_id"`
+		IsActive bool   `json:"is_active"`
+	}
+	UpdateAppUserRequest struct {
+		ID       int64  `json:"id"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		RoleID   int64  `json:"role_id"`
+		IsActive bool   `json:"is_active"`
+	}
+	AppUserAuthRequest struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	AppUserAuthResponse struct {
+		Message      string    `json:"message,omitempty"`
+		SessionToken string    `json:"session_token"`
+		UserID       int64     `json:"user_id"`
+		Email        string    `json:"email"`
+		RoleID       int64     `json:"role_id"`
+		ExpiresAt    time.Time `json:"expires_at"`
+		ExpiresIn    int       `json:"expires_in"`
 
+		/* For 2FA */
+		LoginCode           string    `json:"login_code"`
+		LoginCodeValidUntil time.Time `json:"login_code_valid_until"`
+	}
+	TOTPLoginRequest struct {
+		LoginCode string `json:"login_code"`
+		TOTPCode  string `json:"totp_code"`
+	}
+	TOTPEnableResponse struct {
+		Message string `json:"message,omitempty"`
+		QRCode  []byte `json:"qr_code"`
+	}
+)
+
+// Responses
+type (
+	TOTPEnableConfirmRequest struct {
+		TOTPCode string `json:"totp_code"`
+	}
+	CreateAppUserResponse struct {
+		Message string  `json:"message,omitempty"`
+		User    AppUser `json:"user"`
+	}
+
+	AppUserCollectionResponse struct {
+		Message string     `json:"message,omitempty"`
+		Count   int        `json:"count"`
+		Users   []*AppUser `json:"users"`
+	}
+)
+
+type UserClient struct {
+	baseURL    string
+	authToken  string
 	httpClient *http.Client
 }
 
@@ -26,118 +84,118 @@ func NewUserClient(baseURL, token string, apiVersion int) *UserClient {
 	}
 }
 
-func (c *UserClient) ListUsers(ctx context.Context) (AppUserCollection, error) {
+func (c *UserClient) ListUsers(ctx context.Context) (*AppUserCollectionResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/users", nil)
 	if err != nil {
-		return AppUserCollection{}, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppUserCollection{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppUserCollection{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var users AppUserCollection
+	var users AppUserCollectionResponse
 	if err = json.NewDecoder(resp.Body).Decode(&users); err != nil {
-		return AppUserCollection{}, err
+		return nil, err
 	}
 
-	return users, nil
+	return &users, nil
 }
 
-func (c *UserClient) GetUser(ctx context.Context, userID int64) (AppUser, error) {
+func (c *UserClient) GetUser(ctx context.Context, userID int64) (*AppUser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/users/%d/get", c.baseURL, userID), nil)
 	if err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppUser{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
 	var user AppUser
 	if err = json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
-func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
+func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/users/email/%s/get", c.baseURL, url.PathEscape(email)), nil)
 	if err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppUser{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
 	var user AppUser
 	if err = json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return AppUser{}, err
+		return nil, err
 	}
 
-	return user, nil
+	return &user, nil
 }
 
-func (c *UserClient) RegisterUser(ctx context.Context, user *AppUser) (AppUser, error) {
-	reqBody, err := json.Marshal(user)
-	if err != nil {
-		return AppUser{}, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/users/register", bytes.NewBuffer(reqBody))
-	if err != nil {
-		return AppUser{}, err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.authToken)
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return AppUser{}, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return AppUser{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusCreated), resp.Status)
-	}
-
-	var updatedUser AppUser
-	if err = json.NewDecoder(resp.Body).Decode(&updatedUser); err != nil {
-		return AppUser{}, err
-	}
-
-	return updatedUser, nil
-}
-
-func (c *UserClient) UpdateUser(ctx context.Context, user *AppUser) (*AppUser, error) {
-	reqBody, err := json.Marshal(user)
+func (c *UserClient) RegisterUser(ctx context.Context, request CreateAppUserRequest) (*CreateAppUserResponse, error) {
+	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/users/register", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.authToken)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusCreated), resp.Status)
+	}
+
+	var updatedUser CreateAppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&updatedUser); err != nil {
+		return nil, err
+	}
+
+	return &updatedUser, nil
+}
+
+func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserRequest) (*AppUser, error) {
+	reqBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/users/update", bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, err
 	}
@@ -238,8 +296,8 @@ func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64,
 	return &totpResp, nil
 }
 
-func (c *UserClient) LoginUser(ctx context.Context, auth AppUserAuthRequest) (*AppUserAuthResponse, error) {
-	reqBody, err := json.Marshal(auth)
+func (c *UserClient) LoginUser(ctx context.Context, request *AppUserAuthRequest) (*AppUserAuthResponse, error) {
+	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
@@ -268,8 +326,8 @@ func (c *UserClient) LoginUser(ctx context.Context, auth AppUserAuthRequest) (*A
 	return &authResp, nil
 }
 
-func (c *UserClient) LoginUserWithTOTP(ctx context.Context, auth TOTPLoginRequest) (*AppUserAuthResponse, error) {
-	reqBody, err := json.Marshal(auth)
+func (c *UserClient) LoginUserWithTOTP(ctx context.Context, request *TOTPLoginRequest) (*AppUserAuthResponse, error) {
+	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}

@@ -9,12 +9,25 @@ import (
 	"time"
 )
 
-type AppConfigClient struct {
-	baseURL   string
-	authToken string
+type (
+	AppConfigClient struct {
+		baseURL    string
+		authToken  string
+		httpClient *http.Client
+	}
 
-	httpClient *http.Client
-}
+	AppConfigValueResponse struct {
+		Message     string `json:"message,omitempty"`
+		ConfigKey   string `json:"config_key"`
+		ConfigValue string `json:"config_value"`
+		Enabled     bool   `json:"enabled"`
+	}
+	AllAppConfigValuesResponse struct {
+		Message      string            `json:"message,omitempty"`
+		Count        int               `json:"count"`
+		ConfigValues []*AppConfigValue `json:"config_values"`
+	}
+)
 
 func NewConfigClient(baseURL string, apiVersion int, token string) *AppConfigClient {
 	return &AppConfigClient{
@@ -25,31 +38,31 @@ func NewConfigClient(baseURL string, apiVersion int, token string) *AppConfigCli
 	}
 }
 
-func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (AppConfigValueCollection, error) {
+func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (AllAppConfigValuesResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/config/all", nil)
 	if err != nil {
-		return AppConfigValueCollection{}, err
+		return AllAppConfigValuesResponse{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppConfigValueCollection{}, err
+		return AllAppConfigValuesResponse{}, err
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppConfigValueCollection{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return AllAppConfigValuesResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var configValues AppConfigValueCollection
+	var configValues AllAppConfigValuesResponse
 	if err = json.NewDecoder(resp.Body).Decode(&configValues); err != nil {
-		return AppConfigValueCollection{}, err
+		return AllAppConfigValuesResponse{}, err
 	}
 
 	if configValues.Message != "" {
-		return AppConfigValueCollection{}, fmt.Errorf("error listing config values: %s", configValues.Message)
+		return AllAppConfigValuesResponse{}, fmt.Errorf("error listing config values: %s", configValues.Message)
 	}
 
 	return configValues, nil

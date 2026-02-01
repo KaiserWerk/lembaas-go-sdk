@@ -2,34 +2,8 @@ package lembaas
 
 import "time"
 
-type AppTokenRequest struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client"`
-}
-
-type AppTokenResponse struct {
-	Message string `json:"message,omitempty"`
-	Token   string `json:"token"`
-	// ExpiresIn is in seconds
-	ExpiresIn int    `json:"expires_in"`
-	TokenType string `json:"token_type"`
-}
-
-type AppInfoRequest struct{}
-
-type AppInfoResponse struct {
-	Message     string    `json:"message,omitempty"`
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	ClientID    string    `json:"client_id"`
-	IconURL     string    `json:"icon_url"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-// AppUser represents a user within a specific application (stored in main database)
+// AppUser represents a user within a specific application
 type AppUser struct {
-	Message   string    `json:"message,omitempty"`
 	ID        int64     `json:"id"`
 	AppID     int64     `json:"app_id"`
 	Email     string    `json:"email"`
@@ -39,13 +13,7 @@ type AppUser struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-type AppUserCollection struct {
-	Message string     `json:"message,omitempty"`
-	Count   int        `json:"count"`
-	Users   []*AppUser `json:"users"`
-}
-
-// AppUserSession represents a user session for an app user (stored in main database)
+// AppUserSession represents a user session for an app user
 type AppUserSession struct {
 	Message   string    `json:"message,omitempty"`
 	ID        string    `json:"id"`
@@ -55,7 +23,7 @@ type AppUserSession struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// AppRole represents a role within a specific application (stored in main database)
+// AppRole represents a role within a specific application
 type AppRole struct {
 	Message     string    `json:"message,omitempty"`
 	ID          int64     `json:"id"`
@@ -67,67 +35,8 @@ type AppRole struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-type AppRoleRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Permissions string `json:"permissions"`
-	IsDefault   bool   `json:"is_default"`
-}
-
-type AppRoleCollection struct {
-	Message string     `json:"message,omitempty"`
-	Count   int        `json:"count"`
-	Roles   []*AppRole `json:"roles"`
-}
-
 type AppConfigValue struct {
 	ConfigKey   string `json:"config_key"`
 	ConfigValue string `json:"config_value"`
 	Enabled     bool   `json:"enabled"`
-}
-
-type AppConfigValueResponse struct {
-	Message     string `json:"message,omitempty"`
-	ConfigKey   string `json:"config_key"`
-	ConfigValue string `json:"config_value"`
-	Enabled     bool   `json:"enabled"`
-}
-
-type AppConfigValueCollection struct {
-	Message      string            `json:"message,omitempty"`
-	Count        int               `json:"count"`
-	ConfigValues []*AppConfigValue `json:"config_values"`
-}
-
-type AppUserAuthRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type AppUserAuthResponse struct {
-	Message      string    `json:"message,omitempty"`
-	SessionToken string    `json:"session_token"`
-	UserID       int64     `json:"user_id"`
-	Email        string    `json:"email"`
-	RoleID       int64     `json:"role_id"`
-	ExpiresAt    time.Time `json:"expires_at"`
-	ExpiresIn    int       `json:"expires_in"`
-
-	/* For 2FA */
-	LoginCode           string    `json:"login_code"`
-	LoginCodeValidUntil time.Time `json:"login_code_valid_until"`
-}
-
-type TOTPLoginRequest struct {
-	LoginCode string `json:"login_code"`
-	TOTPCode  string `json:"totp_code"`
-}
-
-type TOTPEnableResponse struct {
-	Message string `json:"message,omitempty"`
-	QRCode  []byte `json:"qr_code"`
-}
-
-type TOTPEnableConfirmRequest struct {
-	TOTPCode string `json:"totp_code"`
 }

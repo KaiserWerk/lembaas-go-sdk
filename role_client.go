@@ -9,6 +9,20 @@ import (
 	"time"
 )
 
+type (
+	CreateAppRoleRequest struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+		Permissions string `json:"permissions"`
+		IsDefault   bool   `json:"is_default"`
+	}
+	AllAppRolesResponse struct {
+		Message string     `json:"message,omitempty"`
+		Count   int        `json:"count"`
+		Roles   []*AppRole `json:"roles"`
+	}
+)
+
 type RoleClient struct {
 	baseURL   string
 	authToken string
@@ -25,32 +39,32 @@ func NewRoleClient(baseURL string, apiVersion int, token string) *RoleClient {
 	}
 }
 
-func (c *RoleClient) ListRoles(ctx context.Context) (AppRoleCollection, error) {
+func (c *RoleClient) ListRoles(ctx context.Context) (AllAppRolesResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/roles", nil)
 	if err != nil {
-		return AppRoleCollection{}, err
+		return AllAppRolesResponse{}, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppRoleCollection{}, err
+		return AllAppRolesResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return AppRoleCollection{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
+		return AllAppRolesResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
 	}
 
-	var roles AppRoleCollection
+	var roles AllAppRolesResponse
 	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
-		return AppRoleCollection{}, err
+		return AllAppRolesResponse{}, err
 	}
 
 	return roles, nil
 }
 
-func (c *RoleClient) CreateRole(ctx context.Context, role AppRoleRequest) (AppRole, error) {
+func (c *RoleClient) CreateRole(ctx context.Context, role CreateAppRoleRequest) (AppRole, error) {
 	reqBody, err := json.Marshal(role)
 	if err != nil {
 		return AppRole{}, err
