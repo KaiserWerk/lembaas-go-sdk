@@ -29,8 +29,30 @@ type (
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
+
+	TOTPLoginRequest struct {
+		LoginCode string `json:"login_code"`
+		TOTPCode  string `json:"totp_code"`
+	}
+)
+
+// Responses
+type (
+	TOTPEnableConfirmRequest struct {
+		TOTPCode string `json:"totp_code"`
+	}
+	CreateAppUserResponse struct {
+		Error string  `json:"error,omitempty"`
+		User  AppUser `json:"user"`
+	}
+
+	AppUserCollectionResponse struct {
+		Error string     `json:"error,omitempty"`
+		Count int        `json:"count"`
+		Users []*AppUser `json:"users"`
+	}
 	AppUserAuthResponse struct {
-		Message      string    `json:"message,omitempty"`
+		Error        string    `json:"error,omitempty"`
 		SessionToken string    `json:"session_token"`
 		UserID       int64     `json:"user_id"`
 		Email        string    `json:"email"`
@@ -42,30 +64,9 @@ type (
 		LoginCode           string    `json:"login_code"`
 		LoginCodeValidUntil time.Time `json:"login_code_valid_until"`
 	}
-	TOTPLoginRequest struct {
-		LoginCode string `json:"login_code"`
-		TOTPCode  string `json:"totp_code"`
-	}
 	TOTPEnableResponse struct {
-		Message string `json:"message,omitempty"`
-		QRCode  []byte `json:"qr_code"`
-	}
-)
-
-// Responses
-type (
-	TOTPEnableConfirmRequest struct {
-		TOTPCode string `json:"totp_code"`
-	}
-	CreateAppUserResponse struct {
-		Message string  `json:"message,omitempty"`
-		User    AppUser `json:"user"`
-	}
-
-	AppUserCollectionResponse struct {
-		Message string     `json:"message,omitempty"`
-		Count   int        `json:"count"`
-		Users   []*AppUser `json:"users"`
+		Error  string `json:"error,omitempty"`
+		QRCode []byte `json:"qr_code"`
 	}
 )
 
