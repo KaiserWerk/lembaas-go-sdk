@@ -17,13 +17,13 @@ type (
 	}
 
 	AppConfigValueResponse struct {
-		Message     string `json:"message,omitempty"`
+		Error       string `json:"error,omitempty"`
 		ConfigKey   string `json:"config_key"`
 		ConfigValue string `json:"config_value"`
 		Enabled     bool   `json:"enabled"`
 	}
 	AllAppConfigValuesResponse struct {
-		Message      string            `json:"message,omitempty"`
+		Error        string            `json:"error,omitempty"`
 		Count        int               `json:"count"`
 		ConfigValues []*AppConfigValue `json:"config_values"`
 	}
@@ -49,23 +49,18 @@ func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (*AllAppCo
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
 
 	var configValues AllAppConfigValuesResponse
 	if err = json.NewDecoder(resp.Body).Decode(&configValues); err != nil {
 		return nil, err
 	}
 
-	if configValues.Message != "" {
-		return nil, fmt.Errorf("error listing config values: %s", configValues.Message)
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configValues.Error)
 	}
 
-	return &configValues, nil
+	return &configValues, err
 }
 
 func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey string) (*AppConfigValueResponse, error) {
@@ -81,20 +76,17 @@ func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey st
 		return nil, err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
 
-	var configValue AppConfigValueResponse
-	if err = json.NewDecoder(resp.Body).Decode(&configValue); err != nil {
+	var configResponse AppConfigValueResponse
+	if err = json.NewDecoder(resp.Body).Decode(&configResponse); err != nil {
 		return nil, err
 	}
 
-	if configValue.Message != "" {
-		return nil, fmt.Errorf("error getting config value: %s", configValue.Message)
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configResponse.Error)
 	}
 
-	return &configValue, nil
+	return &configResponse, err
 }
 
 func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, key, value string) (*AppConfigValueResponse, error) {
@@ -119,20 +111,16 @@ func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, key, value s
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var updatedConfig AppConfigValueResponse
-	if err = json.NewDecoder(resp.Body).Decode(&updatedConfig); err != nil {
+	var configResponse AppConfigValueResponse
+	if err = json.NewDecoder(resp.Body).Decode(&configResponse); err != nil {
 		return nil, err
 	}
 
-	if updatedConfig.Message != "" {
-		return nil, fmt.Errorf("error setting config value: %s", updatedConfig.Message)
+	if resp.StatusCode != http.StatusCreated {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configResponse.Error)
 	}
 
-	return &updatedConfig, nil
+	return &configResponse, err
 }
 
 func (c *AppConfigClient) DeleteCustomConfigValue(ctx context.Context, configKey string) error {

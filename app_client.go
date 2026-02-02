@@ -12,14 +12,14 @@ import (
 // Responses
 type (
 	AppTokenResponse struct {
-		Message string `json:"message,omitempty"`
-		Token   string `json:"token"`
+		Error string `json:"error,omitempty"`
+		Token string `json:"token"`
 		// ExpiresIn is in seconds
 		ExpiresIn int    `json:"expires_in"`
 		TokenType string `json:"token_type"`
 	}
 	AppInfoResponse struct {
-		Message     string    `json:"message,omitempty"`
+		Error       string    `json:"error,omitempty"`
 		ID          int64     `json:"id"`
 		Name        string    `json:"name"`
 		Description string    `json:"description"`
@@ -64,20 +64,16 @@ func (c *AppClient) GetAuthToken(ctx context.Context, clientID, clientSecret str
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var tokenResp AppTokenResponse
-	if err = json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+	var tokenResponse AppTokenResponse
+	if err = json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
 		return nil, err
 	}
 
-	if tokenResp.Message != "" {
-		return nil, fmt.Errorf("error getting auth token: %s", tokenResp.Message)
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, tokenResponse.Error)
 	}
 
-	return &tokenResp, nil
+	return &tokenResponse, err
 }
 
 func (c *AppClient) GetAppInfo(ctx context.Context, token string) (*AppInfoResponse, error) {
@@ -93,18 +89,14 @@ func (c *AppClient) GetAppInfo(ctx context.Context, token string) (*AppInfoRespo
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var appInfo AppInfoResponse
-	if err = json.NewDecoder(resp.Body).Decode(&appInfo); err != nil {
+	var appInfoResponse AppInfoResponse
+	if err = json.NewDecoder(resp.Body).Decode(&appInfoResponse); err != nil {
 		return nil, err
 	}
 
-	if appInfo.Message != "" {
-		return nil, fmt.Errorf("error getting app info: %s", appInfo.Message)
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, appInfoResponse.Error)
 	}
 
-	return &appInfo, nil
+	return &appInfoResponse, err
 }

@@ -41,11 +41,10 @@ type (
 	TOTPEnableConfirmRequest struct {
 		TOTPCode string `json:"totp_code"`
 	}
-	CreateAppUserResponse struct {
+	AppUserResponse struct {
 		Error string  `json:"error,omitempty"`
 		User  AppUser `json:"user"`
 	}
-
 	AppUserCollectionResponse struct {
 		Error string     `json:"error,omitempty"`
 		Count int        `json:"count"`
@@ -98,19 +97,19 @@ func (c *UserClient) ListUsers(ctx context.Context) (*AppUserCollectionResponse,
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var users AppUserCollectionResponse
 	if err = json.NewDecoder(resp.Body).Decode(&users); err != nil {
 		return nil, err
 	}
 
-	return &users, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, users.Error)
+	}
+
+	return &users, err
 }
 
-func (c *UserClient) GetUser(ctx context.Context, userID int64) (*AppUser, error) {
+func (c *UserClient) GetUser(ctx context.Context, userID int64) (*AppUserResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/users/%d/get", c.baseURL, userID), nil)
 	if err != nil {
 		return nil, err
@@ -123,19 +122,19 @@ func (c *UserClient) GetUser(ctx context.Context, userID int64) (*AppUser, error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var user AppUser
-	if err = json.NewDecoder(resp.Body).Decode(&user); err != nil {
+	var response AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, response.Error)
+	}
+
+	return &response, err
 }
 
-func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUser, error) {
+func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUserResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/users/email/%s/get", c.baseURL, url.PathEscape(email)), nil)
 	if err != nil {
 		return nil, err
@@ -148,19 +147,19 @@ func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUser
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var user AppUser
-	if err = json.NewDecoder(resp.Body).Decode(&user); err != nil {
+	var response AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, response.Error)
+	}
+
+	return &response, err
 }
 
-func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserRequest) (*CreateAppUserResponse, error) {
+func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserRequest) (*AppUserResponse, error) {
 	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
@@ -178,19 +177,19 @@ func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserReq
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusCreated), resp.Status)
-	}
-
-	var updatedUser CreateAppUserResponse
-	if err = json.NewDecoder(resp.Body).Decode(&updatedUser); err != nil {
+	var registeredUser AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&registeredUser); err != nil {
 		return nil, err
 	}
 
-	return &updatedUser, nil
+	if resp.StatusCode != http.StatusCreated {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusCreated), resp.Status, registeredUser.Error)
+	}
+
+	return &registeredUser, err
 }
 
-func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserRequest) (*AppUser, error) {
+func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserRequest) (*AppUserResponse, error) {
 	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
@@ -208,16 +207,16 @@ func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserReque
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
-	var createdUser AppUser
-	if err = json.NewDecoder(resp.Body).Decode(&createdUser); err != nil {
+	var updatedUser AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&updatedUser); err != nil {
 		return nil, err
 	}
 
-	return &createdUser, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, updatedUser.Error)
+	}
+
+	return &updatedUser, err
 }
 
 func (c *UserClient) DeleteUser(ctx context.Context, userID int64) error {
@@ -254,16 +253,16 @@ func (c *UserClient) EnableTOTPForUser(ctx context.Context, userID int64) (*TOTP
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var totpResp TOTPEnableResponse
 	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
 		return nil, err
 	}
 
-	return &totpResp, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, totpResp.Error)
+	}
+
+	return &totpResp, err
 }
 
 func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64, code string) (*TOTPEnableResponse, error) {
@@ -285,16 +284,16 @@ func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64,
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var totpResp TOTPEnableResponse
 	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
 		return nil, err
 	}
 
-	return &totpResp, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, totpResp.Error)
+	}
+
+	return &totpResp, err
 }
 
 func (c *UserClient) LoginUser(ctx context.Context, request *AppUserAuthRequest) (*AppUserAuthResponse, error) {
@@ -315,16 +314,16 @@ func (c *UserClient) LoginUser(ctx context.Context, request *AppUserAuthRequest)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var authResp AppUserAuthResponse
 	if err = json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		return nil, err
 	}
 
-	return &authResp, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, authResp.Error)
+	}
+
+	return &authResp, err
 }
 
 func (c *UserClient) LoginUserWithTOTP(ctx context.Context, request *TOTPLoginRequest) (*AppUserAuthResponse, error) {
@@ -345,14 +344,14 @@ func (c *UserClient) LoginUserWithTOTP(ctx context.Context, request *TOTPLoginRe
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var authResp AppUserAuthResponse
 	if err = json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
 		return nil, err
 	}
 
-	return &authResp, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, authResp.Error)
+	}
+
+	return &authResp, err
 }

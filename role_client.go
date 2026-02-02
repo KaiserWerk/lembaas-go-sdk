@@ -17,9 +17,13 @@ type (
 		IsDefault   bool   `json:"is_default"`
 	}
 	AllAppRolesResponse struct {
-		Message string     `json:"message,omitempty"`
-		Count   int        `json:"count"`
-		Roles   []*AppRole `json:"roles"`
+		Error string     `json:"error,omitempty"`
+		Count int        `json:"count"`
+		Roles []*AppRole `json:"roles"`
+	}
+	AppRoleResponse struct {
+		Error string `json:"error,omitempty"`
+		AppRole
 	}
 )
 
@@ -39,59 +43,59 @@ func NewRoleClient(baseURL string, apiVersion int, token string) *RoleClient {
 	}
 }
 
-func (c *RoleClient) ListRoles(ctx context.Context) (AllAppRolesResponse, error) {
+func (c *RoleClient) ListRoles(ctx context.Context) (*AllAppRolesResponse, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/roles", nil)
 	if err != nil {
-		return AllAppRolesResponse{}, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AllAppRolesResponse{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return AllAppRolesResponse{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusOK), resp.Status)
-	}
-
 	var roles AllAppRolesResponse
 	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
-		return AllAppRolesResponse{}, err
+		return nil, err
 	}
 
-	return roles, nil
+	if resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, roles.Error)
+	}
+
+	return &roles, err
 }
 
-func (c *RoleClient) CreateRole(ctx context.Context, role *CreateAppRoleRequest) (AppRole, error) {
+func (c *RoleClient) CreateRole(ctx context.Context, role *CreateAppRoleRequest) (*AppRoleResponse, error) {
 	reqBody, err := json.Marshal(role)
 	if err != nil {
-		return AppRole{}, err
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/roles/create", bytes.NewBuffer(reqBody))
 	if err != nil {
-		return AppRole{}, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+c.authToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return AppRole{}, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
-		return AppRole{}, fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusCreated), resp.Status)
-	}
-
-	var roles AppRole
+	var roles AppRoleResponse
 	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
-		return AppRole{}, err
+		return nil, err
 	}
 
-	return roles, nil
+	if resp.StatusCode != http.StatusCreated {
+		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusCreated), resp.Status, roles.Error)
+	}
+
+	return &roles, err
 }
 
 func (c *RoleClient) DeleteRole(ctx context.Context, roleID int64) error {

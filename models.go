@@ -13,19 +13,9 @@ type AppUser struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// AppUserSession represents a user session for an app user
-type AppUserSession struct {
-	Message   string    `json:"message,omitempty"`
-	ID        string    `json:"id"`
-	AppID     int64     `json:"app_id"`
-	UserID    int64     `json:"user_id"`
-	ExpiresAt time.Time `json:"expires_at"`
-	CreatedAt time.Time `json:"created_at"`
-}
-
 // AppRole represents a role within a specific application
 type AppRole struct {
-	Message     string    `json:"message,omitempty"`
+	Error       string    `json:"error,omitempty"`
 	ID          int64     `json:"id"`
 	AppID       int64     `json:"app_id"`
 	Name        string    `json:"name"`
