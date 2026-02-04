@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -69,6 +70,10 @@ type (
 	}
 )
 
+var (
+	ErrUserNotFound = fmt.Errorf("user not found")
+)
+
 type UserClient struct {
 	baseURL    string
 	authToken  string
@@ -127,11 +132,15 @@ func (c *UserClient) GetUser(ctx context.Context, userID int64) (*AppUserRespons
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, response.Error)
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrUserNotFound
 	}
 
-	return &response, err
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
+	return &response, nil
 }
 
 func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUserResponse, error) {
@@ -152,11 +161,15 @@ func (c *UserClient) GetUserByEmail(ctx context.Context, email string) (*AppUser
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, response.Error)
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrUserNotFound
 	}
 
-	return &response, err
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
+	return &response, nil
 }
 
 func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserRequest) (*AppUserResponse, error) {
@@ -177,16 +190,16 @@ func (c *UserClient) RegisterUser(ctx context.Context, request *CreateAppUserReq
 	}
 	defer resp.Body.Close()
 
-	var registeredUser AppUserResponse
-	if err = json.NewDecoder(resp.Body).Decode(&registeredUser); err != nil {
+	var response AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusCreated {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusCreated), resp.Status, registeredUser.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &registeredUser, err
+	return &response, nil
 }
 
 func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserRequest) (*AppUserResponse, error) {
@@ -207,16 +220,16 @@ func (c *UserClient) UpdateUser(ctx context.Context, request *UpdateAppUserReque
 	}
 	defer resp.Body.Close()
 
-	var updatedUser AppUserResponse
-	if err = json.NewDecoder(resp.Body).Decode(&updatedUser); err != nil {
+	var response AppUserResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, updatedUser.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &updatedUser, err
+	return &response, nil
 }
 
 func (c *UserClient) DeleteUser(ctx context.Context, userID int64) error {
@@ -253,16 +266,16 @@ func (c *UserClient) EnableTOTPForUser(ctx context.Context, userID int64) (*TOTP
 	}
 	defer resp.Body.Close()
 
-	var totpResp TOTPEnableResponse
-	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
+	var response TOTPEnableResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, totpResp.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &totpResp, err
+	return &response, nil
 }
 
 func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64, code string) (*TOTPEnableResponse, error) {
@@ -284,16 +297,16 @@ func (c *UserClient) ConfirmEnableTOTPForUser(ctx context.Context, userID int64,
 	}
 	defer resp.Body.Close()
 
-	var totpResp TOTPEnableResponse
-	if err = json.NewDecoder(resp.Body).Decode(&totpResp); err != nil {
+	var response TOTPEnableResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, totpResp.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &totpResp, err
+	return &response, nil
 }
 
 func (c *UserClient) LoginUser(ctx context.Context, request *AppUserAuthRequest) (*AppUserAuthResponse, error) {
@@ -314,16 +327,16 @@ func (c *UserClient) LoginUser(ctx context.Context, request *AppUserAuthRequest)
 	}
 	defer resp.Body.Close()
 
-	var authResp AppUserAuthResponse
-	if err = json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+	var response AppUserAuthResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, authResp.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &authResp, err
+	return &response, nil
 }
 
 func (c *UserClient) LoginUserWithTOTP(ctx context.Context, request *TOTPLoginRequest) (*AppUserAuthResponse, error) {
@@ -344,14 +357,14 @@ func (c *UserClient) LoginUserWithTOTP(ctx context.Context, request *TOTPLoginRe
 	}
 	defer resp.Body.Close()
 
-	var authResp AppUserAuthResponse
-	if err = json.NewDecoder(resp.Body).Decode(&authResp); err != nil {
+	var response AppUserAuthResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, authResp.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &authResp, err
+	return &response, nil
 }

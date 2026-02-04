@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -64,16 +65,16 @@ func (c *AppClient) GetAuthToken(ctx context.Context, clientID, clientSecret str
 	}
 	defer resp.Body.Close()
 
-	var tokenResponse AppTokenResponse
-	if err = json.NewDecoder(resp.Body).Decode(&tokenResponse); err != nil {
+	var response AppTokenResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, tokenResponse.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &tokenResponse, err
+	return &response, nil
 }
 
 func (c *AppClient) GetAppInfo(ctx context.Context, token string) (*AppInfoResponse, error) {
@@ -89,14 +90,14 @@ func (c *AppClient) GetAppInfo(ctx context.Context, token string) (*AppInfoRespo
 	}
 	defer resp.Body.Close()
 
-	var appInfoResponse AppInfoResponse
-	if err = json.NewDecoder(resp.Body).Decode(&appInfoResponse); err != nil {
+	var response AppInfoResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, appInfoResponse.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &appInfoResponse, err
+	return &response, nil
 }

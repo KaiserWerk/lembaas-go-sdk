@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -56,16 +57,16 @@ func (c *RoleClient) ListRoles(ctx context.Context) (*AllAppRolesResponse, error
 	}
 	defer resp.Body.Close()
 
-	var roles AllAppRolesResponse
-	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
+	var response AllAppRolesResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, roles.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &roles, err
+	return &response, nil
 }
 
 func (c *RoleClient) CreateRole(ctx context.Context, role *CreateAppRoleRequest) (*AppRoleResponse, error) {
@@ -86,16 +87,16 @@ func (c *RoleClient) CreateRole(ctx context.Context, role *CreateAppRoleRequest)
 	}
 	defer resp.Body.Close()
 
-	var roles AppRoleResponse
-	if err = json.NewDecoder(resp.Body).Decode(&roles); err != nil {
+	var response AppRoleResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusCreated {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusCreated), resp.Status, roles.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &roles, err
+	return &response, nil
 }
 
 func (c *RoleClient) DeleteRole(ctx context.Context, roleID int64) error {
@@ -111,8 +112,15 @@ func (c *RoleClient) DeleteRole(ctx context.Context, roleID int64) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusNoContent), resp.Status)
+	response := struct {
+		Error string `json:"error,omitempty"`
+	}{}
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return err
+	}
+
+	if response.Error != "" {
+		return errors.New(response.Error)
 	}
 
 	return nil

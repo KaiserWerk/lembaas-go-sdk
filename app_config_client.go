@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -29,6 +30,10 @@ type (
 	}
 )
 
+var (
+	ErrConfigNotFound = errors.New("configuration key not found")
+)
+
 func NewConfigClient(baseURL string, apiVersion int, token string) *AppConfigClient {
 	return &AppConfigClient{
 		baseURL:   fmt.Sprintf("%s/api/v%d", baseURL, apiVersion),
@@ -51,16 +56,16 @@ func (c *AppConfigClient) ListCustomConfigValues(ctx context.Context) (*AllAppCo
 	}
 	defer resp.Body.Close()
 
-	var configValues AllAppConfigValuesResponse
-	if err = json.NewDecoder(resp.Body).Decode(&configValues); err != nil {
+	var response AllAppConfigValuesResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configValues.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &configValues, err
+	return &response, nil
 }
 
 func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey string) (*AppConfigValueResponse, error) {
@@ -77,16 +82,20 @@ func (c *AppConfigClient) GetCustomConfigValue(ctx context.Context, configKey st
 	}
 	defer resp.Body.Close()
 
-	var configResponse AppConfigValueResponse
-	if err = json.NewDecoder(resp.Body).Decode(&configResponse); err != nil {
+	var response AppConfigValueResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configResponse.Error)
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, ErrConfigNotFound
 	}
 
-	return &configResponse, err
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
+	}
+
+	return &response, nil
 }
 
 func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, key, value string) (*AppConfigValueResponse, error) {
@@ -111,16 +120,16 @@ func (c *AppConfigClient) SetCustomConfigValue(ctx context.Context, key, value s
 	}
 	defer resp.Body.Close()
 
-	var configResponse AppConfigValueResponse
-	if err = json.NewDecoder(resp.Body).Decode(&configResponse); err != nil {
+	var response AppConfigValueResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusCreated {
-		err = fmt.Errorf("expected status '%s', got '%s' (%s)", http.StatusText(http.StatusOK), resp.Status, configResponse.Error)
+	if response.Error != "" {
+		return nil, errors.New(response.Error)
 	}
 
-	return &configResponse, err
+	return &response, nil
 }
 
 func (c *AppConfigClient) DeleteCustomConfigValue(ctx context.Context, configKey string) error {
@@ -137,8 +146,15 @@ func (c *AppConfigClient) DeleteCustomConfigValue(ctx context.Context, configKey
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("expected status '%s', got '%s'", http.StatusText(http.StatusNoContent), resp.Status)
+	response := struct {
+		Error string `json:"error,omitempty"`
+	}{}
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return err
+	}
+
+	if response.Error != "" {
+		return errors.New(response.Error)
 	}
 
 	return nil
