@@ -43,8 +43,8 @@ type (
 		TOTPCode string `json:"totp_code"`
 	}
 	AppUserResponse struct {
-		Error string  `json:"error,omitempty"`
-		User  AppUser `json:"user"`
+		Error string `json:"error,omitempty"`
+		AppUser
 	}
 	AppUserCollectionResponse struct {
 		Error string     `json:"error,omitempty"`
